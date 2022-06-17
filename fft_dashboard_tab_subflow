@@ -1,0 +1,2368 @@
+[
+    {
+        "id": "6805408c9bb2bde9",
+        "type": "subflow",
+        "name": "Subflow 1",
+        "info": "",
+        "in": [
+            {
+                "x": 180,
+                "y": 580,
+                "wires": [
+                    {
+                        "id": "341f99f9db32df5d"
+                    }
+                ]
+            }
+        ],
+        "out": []
+    },
+    {
+        "id": "a315a19f96128d12",
+        "type": "function",
+        "z": "6805408c9bb2bde9",
+        "name": "fft wrapper (2^N only)",
+        "func": "var a = msg.payload.length;\nvar b = Math.log(a)/Math.log(2);\n\nif ((b != Math.floor(b) ) || (1 >= a ))\n{\n    node.status({text:\"Reject: Not a natural power of two (\"+a+\")\"});\n    return null; //not a power of two (and at least two)\n}\n\n    node.status({text:\"processing array size (\"+a+\")\"});\n\n var fftjs = context.global.fftjs;\n\n var timestamp1 = Date.now();\n msg.fft = fftjs.fft(msg.payload);\n msg.fftcalcdelay = (Date.now())-timestamp1;\n\n    node.status({text:a+\"-sample FFT -- Calc time: \"+msg.fftcalcdelay});\n    \nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 2100,
+        "y": 520,
+        "wires": [
+            [
+                "f9ebf34253fbd688",
+                "e17170831a1a1b1b",
+                "d09fd9dd3741f8fd",
+                "a4df19926336d4f6"
+            ]
+        ]
+    },
+    {
+        "id": "f9ebf34253fbd688",
+        "type": "debug",
+        "z": "6805408c9bb2bde9",
+        "name": "",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 2330,
+        "y": 480,
+        "wires": []
+    },
+    {
+        "id": "890fc14c98d44686",
+        "type": "inject",
+        "z": "6805408c9bb2bde9",
+        "name": "test with 16-array",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "[1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0]",
+        "payloadType": "jsonata",
+        "x": 1960,
+        "y": 480,
+        "wires": [
+            [
+                "a315a19f96128d12"
+            ]
+        ]
+    },
+    {
+        "id": "e17170831a1a1b1b",
+        "type": "function",
+        "z": "6805408c9bb2bde9",
+        "name": "strip magnitudes & phases, add to msg",
+        "func": "if (0 >= msg.fft.length) return null;\nvar magnitudes = new Array(msg.fft.length/2);\nvar phases = new Array(msg.fft.length/2);\nvar mp_pairs = new Array(msg.fft.length/2);\nnode.status({text:\"json: \", shape:\"dot\", fill:\"red\"});\n\nfor (var i=0; i<msg.fft.length/2; i++)\n{\n    var myobj = msg.fft[i];\n    var myjsonobj = { \"magnitude\":myobj[0], \"phase\":myobj[1], \n                        \"index\":i, \n                        \"note\":\"These are unadulterated fft calculations from fftjs\" };\n\n    magnitudes[i] = myjsonobj.magnitude/msg.fft.length;\n    if (!(  Number.isFinite(magnitudes[i]) )) magnitudes[i] = 0;\n    phases[i] = myjsonobj.phase/msg.fft.length;\n    if (!(  Number.isFinite(phases[i]) )) phases[i] = 0;\n    mp_pairs[i] = myjsonobj;\n}    \n\n//it doesn't really matter which value is used because the status text \n//is more a confirmation/affirmation of life.\n//remember: myjsonobj has the //old, unprocessed// FFT information\n//      if you want to see corrected values, use magnitudes[] and phases[]\n//\nnode.status({text:\"raw json: mag=\"+myjsonobj.magnitude.toFixed(3)\n                            +\" phase=\"+myjsonobj.phase.toFixed(3),\n                            shape:\"dot\", fill:\"green\"});\n\nmsg.magnitudes = magnitudes;\nmsg.phases = phases;\nmsg.mp_pairs = mp_pairs;\ndelete(msg.fft);\ndelete(msg.oldest);\ndelete(msg.newest);\ndelete(msg.reading);\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 2430,
+        "y": 520,
+        "wires": [
+            [
+                "0f573e62ee884616",
+                "e833cfd20fe3bfa2",
+                "5901b88dd38ca2a8",
+                "1d6c61a9832796ed"
+            ]
+        ]
+    },
+    {
+        "id": "0f573e62ee884616",
+        "type": "debug",
+        "z": "6805408c9bb2bde9",
+        "name": "",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 2500,
+        "y": 480,
+        "wires": []
+    },
+    {
+        "id": "e833cfd20fe3bfa2",
+        "type": "change",
+        "z": "6805408c9bb2bde9",
+        "name": "magnitudes",
+        "rules": [
+            {
+                "t": "set",
+                "p": "payload",
+                "pt": "msg",
+                "to": "magnitudes",
+                "tot": "msg"
+            },
+            {
+                "t": "set",
+                "p": "topic",
+                "pt": "msg",
+                "to": "magnitude",
+                "tot": "str"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 2810,
+        "y": 1140,
+        "wires": [
+            [
+                "c787922b79e7db92",
+                "9c55813007abd395"
+            ]
+        ]
+    },
+    {
+        "id": "5901b88dd38ca2a8",
+        "type": "change",
+        "z": "6805408c9bb2bde9",
+        "name": "phases",
+        "rules": [
+            {
+                "t": "set",
+                "p": "payload",
+                "pt": "msg",
+                "to": "phases",
+                "tot": "msg"
+            },
+            {
+                "t": "set",
+                "p": "topic",
+                "pt": "msg",
+                "to": "phase",
+                "tot": "str"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 2820,
+        "y": 640,
+        "wires": [
+            [
+                "f40c7dc5fbcc2d9e",
+                "ea83601dd10e8255"
+            ]
+        ]
+    },
+    {
+        "id": "c787922b79e7db92",
+        "type": "debug",
+        "z": "6805408c9bb2bde9",
+        "name": "",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 2830,
+        "y": 1180,
+        "wires": []
+    },
+    {
+        "id": "f40c7dc5fbcc2d9e",
+        "type": "debug",
+        "z": "6805408c9bb2bde9",
+        "name": "",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 2810,
+        "y": 600,
+        "wires": []
+    },
+    {
+        "id": "9c55813007abd395",
+        "type": "function",
+        "z": "6805408c9bb2bde9",
+        "name": "prep FFT for dashboard graph - magnitude",
+        "func": "var fft_log_freq_flag = context.get('fft_log_freq_flag')||\"linear\";\nvar fft_log_magnitude_flag = context.get('fft_log_magnitude_flag')||\"linear\";\nvar fft_include_a0_in_mags = context.get('fft_include_a0_in_mags')||\"false\";\nvar fft_PowerSpectrum = context.get('fft_PowerSpectrum')||\"false\";\nvar MeanSampleFreq = context.get('MeanSampleFreq')||1.0;\n\nconst mostFFTBinsShown = 255;\nconst minFFTBinsShown = 1;\nvar maxHarmonicDisplay = context.get('maxHarmonicDisplay')||255;\nmsg.maxHarmonicDisplay = maxHarmonicDisplay;\n\nvar foo = (\"xaxis\" == msg.topic);\nvar bar = (\"yaxis\" == msg.topic);\nvar chet = (\"Includea0\" == msg.topic);\nvar barnes = (\"PowerSpectrum\" == msg.topic);\nvar toto = (\"maxHarmonicDisplay\" == msg.topic);\nvar bono_nono = (\"MeanSampleFreq\" == msg.topic);\n//node.warn({text:msg.topic});\n\nif (foo || bar || chet || barnes || toto) //not data, commands or whatever\n{\n    if (foo) \n    {\n        fft_log_freq_flag = msg.payload;\n        context.set('fft_log_freq_flag',fft_log_freq_flag);\n        //node.warn({text: \"xaxis set to \"+fft_log_freq_flag});\n    }\n    if (bar) \n    {\n        fft_log_magnitude_flag = msg.payload;\n        context.set('fft_log_magnitude_flag',fft_log_magnitude_flag);\n        //node.warn({text: \"yaxis set to \"+fft_log_magnitude_flag});\n    }\n    if (chet)\n    {\n        \n        fft_include_a0_in_mags = String(msg.payload);//fudging Boolean fudging me around\n        context.set('fft_include_a0_in_mags',fft_include_a0_in_mags);\n    }\n    if (barnes)\n    {\n        \n        fft_PowerSpectrum = String(msg.payload);//fudging Boolean fudging me around\n        context.set('fft_PowerSpectrum',fft_PowerSpectrum);\n    }\n    if (toto) \n    {\n        maxHarmonicDisplay = Number(msg.payload);\n        if (minFFTBinsShown > maxHarmonicDisplay) maxHarmonicDisplay = minFFTBinsShown;\n        if (mostFFTBinsShown < maxHarmonicDisplay) maxHarmonicDisplay = mostFFTBinsShown;\n        context.set('maxHarmonicDisplay',maxHarmonicDisplay);\n    }\n    if (bono_nono)\n    {\n        \n        MeanSampleFreq = String(msg.payload);//fudging Boolean fudging me around\n        context.set('MeanSampleFreq',MeanSampleFreq);\n    }\n    //msg.payload = null;\n    return null; // just get the hell out of here; you're done\n \n}\nelse\n{\n    var powsum = 0;\n    msg.a0 = msg.magnitudes[0];\n    \n    var maxshow = 0;\n    if (msg.mp_pairs.length < maxHarmonicDisplay) maxshow = msg.mp_pairs.length;\n    else maxshow = maxHarmonicDisplay;\n    \n    var datavalues = new Array(maxshow);\n    var xlabels = new Array(maxshow);\n    var titlelabel = \"\";\n    \n    //for (var i=0; i< msg.mp_pairs.length; i++)\n    for (var i=0; i< maxshow; i++)\n    {\n        //Check the magnitude axis scaling (y-axis)\n        if (\"linear\" == fft_log_magnitude_flag)\n        {\n            titlelabel = \" (cm)\";\n            //i wrote the cweird looking logic below to force a similar comparison\n            if ((0 == i) & (\"false\" == fft_include_a0_in_mags)) //null the DC (a0) value\n                datavalues[i] = null; //it's easier just to do this\n            else\n            {\n                if (\"true\" == fft_PowerSpectrum)\n                    datavalues[i] = 1000000*msg.magnitudes[i]*msg.magnitudes[i]; //in cm^2x10^-6\n                else\n                    datavalues[i] = Math.abs(msg.magnitudes[i]); //in cm\n            }\n            if (0 != i)\n                powsum = powsum + msg.magnitudes[i]*msg.magnitudes[i]\n        }\n        else if (\"log\" == fft_log_magnitude_flag)\n        {\n            titlelabel = \" (dBcm)\";\n            if ( 0 != msg.magnitudes[i])\n            {        //i wrote the cweird looking logic below to force a similar comparison\n                if ((0 == i) & (\"false\" == fft_include_a0_in_mags)) //null the DC (a0) value\n                    datavalues[i] = null; //it's easier just to do this\n                else\n                    datavalues[i] = 20*Math.log(msg.magnitudes[i]); //in 'dBcm'\n            }\n            else\n                datavalues[i] = null; //cross your fingers! (won't plot nulls)\n            //else\n            //    datavalues[i] = 20*Math.log(msg.magnitudes[i]/msg.magnitudes[0]); //normalize\n            //no good reason to normalize\n        }\n        else\n            datavalues[i] = 0; //shouldn't happen\n        \n        //the frequency axis (x-axis)\n        if (\"linear\" == fft_log_freq_flag)\n            xlabels[i] = String((msg.mp_pairs[i].index*1.25/msg.mp_pairs.length).toFixed(3))+\" Hz\";\n        else if (\"log\" == fft_log_freq_flag)\n        {\n            //this is currently no different from linear\n            xlabels[i] = String((msg.mp_pairs[i].index*1.25/msg.mp_pairs.length).toFixed(3))+\" Hz\";\n        }\n        else\n            xlabels[i] = \"?\"; //short, to the point.\n    }\n\n    var graphdata = [{\n    \"series\": [\"FFT magnitudes (\"+msg.mp_pairs.length+\" frequencies)\"],\n    \"data\":  [datavalues],\n    \"labels\": xlabels\n    }];\n    \n    msg.powsum = powsum;\n    msg.DCACratio = Math.log(msg.a0*msg.a0 / powsum);\n    msg.payload = graphdata;\n    msg.timestamp = Date.now();\n}\n\nmsg.label = \"FFT Magnitudes\"+titlelabel;\nnode.status({\"text\": \"Max Frequencies sent (settable): \"+maxHarmonicDisplay});\n\ndelete(msg.magnitudes);\ndelete(msg.phases);\ndelete(msg.mp_pairs);\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 3310,
+        "y": 1140,
+        "wires": [
+            [
+                "1ee1d8e7d97c0436",
+                "42992f8cb33f27cd",
+                "0a7f2b1871654d2a"
+            ]
+        ]
+    },
+    {
+        "id": "1ee1d8e7d97c0436",
+        "type": "debug",
+        "z": "6805408c9bb2bde9",
+        "name": "",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 3410,
+        "y": 1100,
+        "wires": []
+    },
+    {
+        "id": "f248f4c114b92660",
+        "type": "debug",
+        "z": "6805408c9bb2bde9",
+        "name": "",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 4120,
+        "y": 1080,
+        "wires": []
+    },
+    {
+        "id": "e3fdfef2e3c75dce",
+        "type": "inject",
+        "z": "6805408c9bb2bde9",
+        "name": "clear",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "[]",
+        "payloadType": "jsonata",
+        "x": 3270,
+        "y": 320,
+        "wires": [
+            [
+                "3530c373715aa668"
+            ]
+        ]
+    },
+    {
+        "id": "3f9bfdf5224dc1b3",
+        "type": "inject",
+        "z": "6805408c9bb2bde9",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "xaxis",
+        "payload": "log",
+        "payloadType": "str",
+        "x": 2980,
+        "y": 980,
+        "wires": [
+            [
+                "d43a2d975ce1fd3b"
+            ]
+        ]
+    },
+    {
+        "id": "f62b319c35371785",
+        "type": "inject",
+        "z": "6805408c9bb2bde9",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "xaxis",
+        "payload": "linear",
+        "payloadType": "str",
+        "x": 2970,
+        "y": 940,
+        "wires": [
+            [
+                "d43a2d975ce1fd3b"
+            ]
+        ]
+    },
+    {
+        "id": "ea6137d4292e491f",
+        "type": "inject",
+        "z": "6805408c9bb2bde9",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "yaxis",
+        "payload": "log",
+        "payloadType": "str",
+        "x": 2740,
+        "y": 1300,
+        "wires": [
+            [
+                "d61863ee158dbe5e"
+            ]
+        ]
+    },
+    {
+        "id": "7784540128aa3fbe",
+        "type": "inject",
+        "z": "6805408c9bb2bde9",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "yaxis",
+        "payload": "linear",
+        "payloadType": "str",
+        "x": 2750,
+        "y": 1260,
+        "wires": [
+            [
+                "d61863ee158dbe5e"
+            ]
+        ]
+    },
+    {
+        "id": "ea83601dd10e8255",
+        "type": "function",
+        "z": "6805408c9bb2bde9",
+        "name": "prep FFT for dashboard graph - phase",
+        "func": "\nvar fft_log_freq_flag = context.get('fft_log_freq_flag')||\"linear\";\nvar MeanSampleFreq = context.get('MeanSampleFreq')||1.0;\n\n\nconst mostFFTBinsShown = 255;\nconst minFFTBinsShown = 1;\nvar maxHarmonicDisplay = context.get('maxHarmonicDisplay')||255;\nmsg.maxHarmonicDisplay = maxHarmonicDisplay;\n\n\nif (\"xaxis\" == msg.topic) \n{\n    fft_log_freq_flag = msg.payload;\n    context.set('fft_log_freq_flag',fft_log_freq_flag);\n    //node.warn({text: \"xaxis set to \"+fft_log_freq_flag});\n    //msg.payload = null;\n    return null; // just get the hell out of here; you're done\n}\nelse if (\"maxHarmonicDisplay\" == msg.topic)\n{\n        maxHarmonicDisplay = Number(msg.payload);\n        if (minFFTBinsShown > maxHarmonicDisplay) maxHarmonicDisplay = minFFTBinsShown;\n        if (mostFFTBinsShown < maxHarmonicDisplay) maxHarmonicDisplay = mostFFTBinsShown;\n        context.set('maxHarmonicDisplay',maxHarmonicDisplay);  \n    return null; // just get the hell out of here; you're done\n}\nelse if (\"MeanSampleFreq\" == msg.topic)\n    {\n        \n        MeanSampleFreq = String(msg.payload);//fudging Boolean fudging me around\n        context.set('MeanSampleFreq',MeanSampleFreq);\n    \n    return null; // just get the hell out of here; you're done\n    }//msg.payload = null;\nelse\n{\n    \n    var maxshow = 0;\n    if (msg.mp_pairs.length < maxHarmonicDisplay) maxshow = msg.mp_pairs.length;\n    else maxshow = maxHarmonicDisplay;\n\n    var datavalues = new Array(maxshow);\n    var xlabels = new Array(maxshow);\n\n    for (var i=0; i< maxshow; i++)\n    {\n        datavalues[i] = msg.phases[i]; //only linear phases\n        \n                //the frequency axis (x-axis)\n        if (\"linear\" == fft_log_freq_flag)\n            xlabels[i] = String((msg.mp_pairs[i].index*1.25/msg.mp_pairs.length).toFixed(3))+\" Hz\";\n        else if (\"log\" == fft_log_freq_flag)\n        {\n            //this is currently no different from linear\n            xlabels[i] = String((msg.mp_pairs[i].index*1.25/msg.mp_pairs.length).toFixed(3))+\" Hz\";\n        }\n        else\n            xlabels[i] = \"?\"; //short, to the point.\n    }\n\n    var graphdata = [{\n    \"series\": [\"FFT Phase angles (\"+msg.mp_pairs.length+\" pts)\"],\n    \"data\":  [datavalues],\n    \"labels\": xlabels\n    }];\n    \n    msg.payload = graphdata;\n    msg.timestamp = Date.now();\n    msg.label = \"FFT Phases\"\n}\n\nnode.status({\"text\": \"Max Frequencies sent (settable): \"+maxHarmonicDisplay});\n\ndelete(msg.magnitudes);\ndelete(msg.phases);\ndelete(msg.mp_pairs);\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 3280,
+        "y": 640,
+        "wires": [
+            [
+                "42992f8cb33f27cd",
+                "656503f6ba6b55f2"
+            ]
+        ]
+    },
+    {
+        "id": "42992f8cb33f27cd",
+        "type": "function",
+        "z": "6805408c9bb2bde9",
+        "name": "pretty time",
+        "func": "delete(msg.payload);\nvar xx = Date.now();\nxx = Math.floor(xx/1000);//convert to seconds\nvar sec = xx % 60;\nxx = Math.floor(xx/60); //convert to minutes\nvar min = xx % 60;\nxx = Math.floor(xx/60); //convert to hours\nvar hrs = xx % 24;\nxx = Math.floor(xx/60); //convert to days\n\nmsg.payload = hrs+\":\"+min+\":\"+sec+\"s\";\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 3600,
+        "y": 860,
+        "wires": [
+            [
+                "bac0eee676981e38"
+            ]
+        ]
+    },
+    {
+        "id": "264125ac141fcbc2",
+        "type": "debug",
+        "z": "6805408c9bb2bde9",
+        "name": "",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 3330,
+        "y": 440,
+        "wires": []
+    },
+    {
+        "id": "d4b2aac6a976cfa1",
+        "type": "function",
+        "z": "6805408c9bb2bde9",
+        "name": "add units to payload",
+        "func": "\n//msg.payload = msg.payload+\" cm\";\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 3130,
+        "y": 480,
+        "wires": [
+            [
+                "264125ac141fcbc2",
+                "c0262b19c97b6e0e"
+            ]
+        ]
+    },
+    {
+        "id": "1d6c61a9832796ed",
+        "type": "function",
+        "z": "6805408c9bb2bde9",
+        "name": "isolate a0 - value only",
+        "func": "var origtimestamp = msg.timestamp;\ndelete(msg.payload);\nmsg.payload = (msg.magnitudes[0]).toFixed(1);\nmsg.timestamp = origtimestamp;\nnode.status({\"text\":\"a0=\"+msg.payload+\" FBins:\"+msg.mp_pairs.length})\nmsg.topic = \"FFT a0\"\ndelete(msg.magnitudes);\ndelete(msg.phases);\ndelete(msg.mp_pairs);\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 2850,
+        "y": 480,
+        "wires": [
+            [
+                "daeeb7e04ebe07b6",
+                "d4b2aac6a976cfa1"
+            ]
+        ]
+    },
+    {
+        "id": "0b01cd30185d9bd3",
+        "type": "inject",
+        "z": "6805408c9bb2bde9",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "true",
+        "payloadType": "str",
+        "x": 2750,
+        "y": 1360,
+        "wires": [
+            [
+                "89fb8b1b4220ebc3"
+            ]
+        ]
+    },
+    {
+        "id": "d2dceb7b6f2e30a8",
+        "type": "inject",
+        "z": "6805408c9bb2bde9",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "false",
+        "payloadType": "str",
+        "x": 2750,
+        "y": 1400,
+        "wires": [
+            [
+                "89fb8b1b4220ebc3"
+            ]
+        ]
+    },
+    {
+        "id": "8f94f02204a94f05",
+        "type": "inject",
+        "z": "6805408c9bb2bde9",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "true",
+        "payloadType": "str",
+        "x": 2810,
+        "y": 1460,
+        "wires": [
+            [
+                "7fdc85bff0fe8cc9"
+            ]
+        ]
+    },
+    {
+        "id": "3277df8729dfccc8",
+        "type": "inject",
+        "z": "6805408c9bb2bde9",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "false",
+        "payloadType": "str",
+        "x": 2810,
+        "y": 1500,
+        "wires": [
+            [
+                "7fdc85bff0fe8cc9"
+            ]
+        ]
+    },
+    {
+        "id": "0a7f2b1871654d2a",
+        "type": "function",
+        "z": "6805408c9bb2bde9",
+        "name": "FFT passthru (pauseable)",
+        "func": "var currentFFPauseState = context.get('FFPauseState')||\"run\";\n    \nif (\"FFTpausetoggle\" == msg.topic)\n{\n    //msg.colour will change the button \n    if (\"pause\" == currentFFPauseState)\n    {\n        currentFFPauseState = \"run\"\n        msg.colour = \"green\";\n        msg.payload = \"running\";\n    }\n    else\n    {\n        \n        currentFFPauseState = \"pause\"  \n        msg.colour = \"red\";\n        msg.payload = \"paused\";\n    }\n    context.set('FFPauseState',currentFFPauseState);\n    node.status({\"text\": \"State: \"+currentFFPauseState, \"shape\": \"ring\", \"fill\":msg.colour});\n    //msg.payload = null;\n    return [null,msg];\n}\nelse\n{\n    if (\"pause\" == currentFFPauseState) return [null,null];\n    else return [msg,null];\n}\n\nreturn [null,null];//should have ducked out by now",
+        "outputs": 2,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 3680,
+        "y": 1140,
+        "wires": [
+            [
+                "0bfca062d05d2e3a",
+                "198c3b65f3b1f66b"
+            ],
+            [
+                "36b81cea4e65bac5",
+                "3a9509fe3a0782ff"
+            ]
+        ],
+        "outputLabels": [
+            "passthru packet",
+            "update button control"
+        ]
+    },
+    {
+        "id": "0bfca062d05d2e3a",
+        "type": "debug",
+        "z": "6805408c9bb2bde9",
+        "name": "",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 3900,
+        "y": 1120,
+        "wires": []
+    },
+    {
+        "id": "50b2a33231b06f32",
+        "type": "inject",
+        "z": "6805408c9bb2bde9",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": "0.5",
+        "topic": "maxHarmonicDisplay",
+        "payload": "33",
+        "payloadType": "num",
+        "x": 3250,
+        "y": 820,
+        "wires": [
+            [
+                "9cf6986215f262fe"
+            ]
+        ]
+    },
+    {
+        "id": "36b81cea4e65bac5",
+        "type": "ui_button",
+        "z": "6805408c9bb2bde9",
+        "name": "un/pause FFT display ui button",
+        "group": "bea23e66643ca7ab",
+        "order": 6,
+        "width": 1,
+        "height": 1,
+        "passthru": false,
+        "label": "",
+        "tooltip": "un/pause FFT display",
+        "color": "{{colour}}",
+        "bgcolor": "{{\"#FFF0F0\"}}",
+        "className": "",
+        "icon": "fa-pause-circle",
+        "payload": "pauseclick",
+        "payloadType": "str",
+        "topic": "FFTpausetoggle",
+        "topicType": "str",
+        "x": 3710,
+        "y": 1200,
+        "wires": [
+            [
+                "0a7f2b1871654d2a",
+                "656503f6ba6b55f2"
+            ]
+        ]
+    },
+    {
+        "id": "d43a2d975ce1fd3b",
+        "type": "ui_switch",
+        "z": "6805408c9bb2bde9",
+        "name": "",
+        "label": "log frequency scale",
+        "tooltip": "This currently DOES NOT change the frequency scaling.  Linear only.",
+        "group": "bea23e66643ca7ab",
+        "order": 17,
+        "width": 0,
+        "height": 0,
+        "passthru": true,
+        "decouple": "false",
+        "topic": "xaxis",
+        "topicType": "str",
+        "style": "",
+        "onvalue": "log",
+        "onvalueType": "str",
+        "onicon": "",
+        "oncolor": "",
+        "offvalue": "linear",
+        "offvalueType": "str",
+        "officon": "",
+        "offcolor": "",
+        "animate": false,
+        "className": "",
+        "x": 2960,
+        "y": 860,
+        "wires": [
+            [
+                "9c55813007abd395",
+                "ea83601dd10e8255"
+            ]
+        ]
+    },
+    {
+        "id": "d61863ee158dbe5e",
+        "type": "ui_switch",
+        "z": "6805408c9bb2bde9",
+        "name": "",
+        "label": "log magnitude scale",
+        "tooltip": "Change the scale between log and linear (LOG LOOKS CRAPPY)",
+        "group": "bea23e66643ca7ab",
+        "order": 5,
+        "width": 0,
+        "height": 0,
+        "passthru": true,
+        "decouple": "false",
+        "topic": "yaxis",
+        "topicType": "str",
+        "style": "",
+        "onvalue": "log",
+        "onvalueType": "str",
+        "onicon": "",
+        "oncolor": "",
+        "offvalue": "linear",
+        "offvalueType": "str",
+        "officon": "",
+        "offcolor": "",
+        "animate": false,
+        "className": "",
+        "x": 2960,
+        "y": 1260,
+        "wires": [
+            [
+                "9c55813007abd395"
+            ]
+        ]
+    },
+    {
+        "id": "89fb8b1b4220ebc3",
+        "type": "ui_switch",
+        "z": "6805408c9bb2bde9",
+        "name": "",
+        "label": "include a0 in magnitudes",
+        "tooltip": "include or remove a0 (which is probably big)",
+        "group": "bea23e66643ca7ab",
+        "order": 4,
+        "width": 6,
+        "height": 1,
+        "passthru": true,
+        "decouple": "false",
+        "topic": "Includea0",
+        "topicType": "str",
+        "style": "",
+        "onvalue": "true",
+        "onvalueType": "str",
+        "onicon": "",
+        "oncolor": "",
+        "offvalue": "false",
+        "offvalueType": "str",
+        "officon": "",
+        "offcolor": "",
+        "animate": false,
+        "className": "",
+        "x": 2950,
+        "y": 1380,
+        "wires": [
+            [
+                "9c55813007abd395"
+            ]
+        ]
+    },
+    {
+        "id": "7fdc85bff0fe8cc9",
+        "type": "ui_switch",
+        "z": "6805408c9bb2bde9",
+        "d": true,
+        "name": "",
+        "label": "Power Spectrum",
+        "tooltip": "Squares of the harmonic magnitudes",
+        "group": "bea23e66643ca7ab",
+        "order": 16,
+        "width": 6,
+        "height": 1,
+        "passthru": true,
+        "decouple": "false",
+        "topic": "PowerSpectrum",
+        "topicType": "str",
+        "style": "",
+        "onvalue": "true",
+        "onvalueType": "str",
+        "onicon": "",
+        "oncolor": "",
+        "offvalue": "false",
+        "offvalueType": "str",
+        "officon": "",
+        "offcolor": "",
+        "animate": false,
+        "className": "",
+        "x": 2980,
+        "y": 1480,
+        "wires": [
+            [
+                "9c55813007abd395"
+            ]
+        ]
+    },
+    {
+        "id": "9cf6986215f262fe",
+        "type": "ui_slider",
+        "z": "6805408c9bb2bde9",
+        "name": "# of frequencies shown",
+        "label": "# of frequencies shown",
+        "tooltip": "How many [a0 + early harmonics] should be shown on the graphs",
+        "group": "bea23e66643ca7ab",
+        "order": 10,
+        "width": 6,
+        "height": 1,
+        "passthru": true,
+        "outs": "end",
+        "topic": "maxHarmonicDisplay",
+        "topicType": "str",
+        "min": "1",
+        "max": "256",
+        "step": 1,
+        "className": "",
+        "x": 3250,
+        "y": 860,
+        "wires": [
+            [
+                "9c55813007abd395",
+                "ea83601dd10e8255"
+            ]
+        ]
+    },
+    {
+        "id": "bac0eee676981e38",
+        "type": "ui_text",
+        "z": "6805408c9bb2bde9",
+        "group": "bea23e66643ca7ab",
+        "order": 18,
+        "width": 0,
+        "height": 0,
+        "name": "",
+        "label": "last update",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "className": "",
+        "x": 3780,
+        "y": 860,
+        "wires": []
+    },
+    {
+        "id": "cb4949a55bc606fb",
+        "type": "ui_text",
+        "z": "6805408c9bb2bde9",
+        "group": "bea23e66643ca7ab",
+        "order": 19,
+        "width": 0,
+        "height": 0,
+        "name": "ui update advice",
+        "label": "",
+        "format": "Changes appear with next graph update",
+        "layout": "row-spread",
+        "className": "",
+        "x": 2970,
+        "y": 820,
+        "wires": []
+    },
+    {
+        "id": "c0262b19c97b6e0e",
+        "type": "ui_text",
+        "z": "6805408c9bb2bde9",
+        "group": "bea23e66643ca7ab",
+        "order": 8,
+        "width": 3,
+        "height": 1,
+        "name": "",
+        "label": "a0 = ",
+        "format": "{{msg.payload}}",
+        "layout": "row-center",
+        "className": "",
+        "x": 3340,
+        "y": 480,
+        "wires": []
+    },
+    {
+        "id": "3a9509fe3a0782ff",
+        "type": "ui_text",
+        "z": "6805408c9bb2bde9",
+        "group": "bea23e66643ca7ab",
+        "order": 7,
+        "width": 2,
+        "height": 1,
+        "name": "ui pause/run state",
+        "label": "",
+        "format": "{{msg.payload}}",
+        "layout": "row-left",
+        "className": "",
+        "x": 3700,
+        "y": 1240,
+        "wires": []
+    },
+    {
+        "id": "198c3b65f3b1f66b",
+        "type": "ui_chart",
+        "z": "6805408c9bb2bde9",
+        "name": "fft magnitudes",
+        "group": "bea23e66643ca7ab",
+        "order": 3,
+        "width": 0,
+        "height": 0,
+        "label": "{{msg.label}}",
+        "chartType": "bar",
+        "legend": "true",
+        "xformat": "auto",
+        "interpolate": "linear",
+        "nodata": "fft goes here",
+        "dot": true,
+        "ymin": "",
+        "ymax": "",
+        "removeOlder": 1,
+        "removeOlderPoints": "256",
+        "removeOlderUnit": "3600",
+        "cutout": 0,
+        "useOneColor": false,
+        "useUTC": false,
+        "colors": [
+            "#1f77b4",
+            "#aec7e8",
+            "#ff7f0e",
+            "#2ca02c",
+            "#98df8a",
+            "#d62728",
+            "#ff9896",
+            "#9467bd",
+            "#c5b0d5"
+        ],
+        "outputs": 1,
+        "useDifferentColor": false,
+        "className": "",
+        "x": 3930,
+        "y": 1080,
+        "wires": [
+            [
+                "f248f4c114b92660"
+            ]
+        ]
+    },
+    {
+        "id": "c97a2177beea5049",
+        "type": "ui_chart",
+        "z": "6805408c9bb2bde9",
+        "name": "fft phases",
+        "group": "bea23e66643ca7ab",
+        "order": 9,
+        "width": 6,
+        "height": 4,
+        "label": "{{msg.label}}",
+        "chartType": "line",
+        "legend": "false",
+        "xformat": "auto",
+        "interpolate": "linear",
+        "nodata": "fft goes here",
+        "dot": false,
+        "ymin": "",
+        "ymax": "",
+        "removeOlder": 1,
+        "removeOlderPoints": "256",
+        "removeOlderUnit": "3600",
+        "cutout": 0,
+        "useOneColor": false,
+        "useUTC": false,
+        "colors": [
+            "#1f77b4",
+            "#aec7e8",
+            "#ff7f0e",
+            "#2ca02c",
+            "#98df8a",
+            "#d62728",
+            "#ff9896",
+            "#9467bd",
+            "#c5b0d5"
+        ],
+        "outputs": 1,
+        "useDifferentColor": false,
+        "className": "",
+        "x": 4000,
+        "y": 640,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "daeeb7e04ebe07b6",
+        "type": "ui_chart",
+        "z": "6805408c9bb2bde9",
+        "name": "",
+        "group": "bea23e66643ca7ab",
+        "order": 12,
+        "width": "4",
+        "height": 3,
+        "label": "a0(t) graph",
+        "chartType": "line",
+        "legend": "false",
+        "xformat": "HH:mm:ss",
+        "interpolate": "linear",
+        "nodata": "",
+        "dot": false,
+        "ymin": "",
+        "ymax": "",
+        "removeOlder": 1,
+        "removeOlderPoints": "512",
+        "removeOlderUnit": "3600",
+        "cutout": 0,
+        "useOneColor": false,
+        "useUTC": false,
+        "colors": [
+            "#1f77b4",
+            "#aec7e8",
+            "#ff7f0e",
+            "#2ca02c",
+            "#98df8a",
+            "#d62728",
+            "#ff9896",
+            "#9467bd",
+            "#c5b0d5"
+        ],
+        "outputs": 1,
+        "useDifferentColor": false,
+        "className": "",
+        "x": 3110,
+        "y": 440,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "276930ecf60194de",
+        "type": "function",
+        "z": "6805408c9bb2bde9",
+        "name": "input data buffer + management",
+        "func": "//This function doesn't care what type of object is in the buffer\n//This function buffers whatever is in msg.payload\n//set msg.setNewBufferSize to a 2^N number for a new buffer size\n\nconst default_buffer_size = 2; //two is arbitrary and conservative\n\nvar thebuffer = context.get('buffer')||[];\nvar buffsize = context.get('bufferSize')||default_buffer_size;\n\n//only enter if() the buffer size needs a reset\nif ((thebuffer.length != buffsize)||(undefined != msg.setNewBufferSize))\n{\n    if (undefined != msg.setNewBufferSize)\n    {\n        if (Number.isFinite(msg.setNewBufferSize))\n        {\n            buffsize = msg.setNewBufferSize;\n        }\n        else\n            buffsize = default_buffer_size; //failure\n    }\n    else if (thebuffer.length != buffsize)\n    {\n        buffsize = default_buffer_size; //buffer size was reset asynchronously \n    } else\n    {\n        buffsize = default_buffer_size; //how'd we even get here?\n    }\n    \n    //check for +ve power of two (i.e., at least two)\n    if ((Math.log(buffsize)/Math.log(2) != \n            Math.floor(Math.log(buffsize)/Math.log(2)) )\n            || (2>buffsize))\n    {\n        //reject this size, get out.\n        node.warn({\"text\":\"Buffer must be power of two (2^N)\"});\n        return null;\n    }\n    \n    //at this point, everything should be OK with the new buffer size\n    thebuffer = Array(buffsize);//cross fingers for garbage collection\n    thebuffer.fill(0);\n    context.set('bufferSize',buffsize); //make sure it knows\n    context.set('buffer',thebuffer);  //store newly-sized, zeroed buffer\n    node.status({\"text\":\"New buffer size: \"+buffsize});\n    return null;  //throw away buffer-changing packets\n}\n\n//By here, the only payloads should be elements for the buffer\nthebuffer.push(msg.payload);  //put in the back of the line\nwhile (thebuffer.length > buffsize)\n{\n    thebuffer.shift(); //remove the front of the line\n}\n\n\n    msg.payload = thebuffer;\n    msg.topic = \"Entire Buffer size \"+thebuffer.length+\" released\";\n    node.status({\"text\":\"last buffer size: \"+thebuffer.length});\n\n\ncontext.set('buffer',thebuffer);\n\nif (null !== msg.payload) return msg;\nelse return null; //how'd we get here?",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1810,
+        "y": 640,
+        "wires": [
+            [
+                "29d0d2e137d26725",
+                "a315a19f96128d12",
+                "2d7a802bbc1fc9a3"
+            ]
+        ]
+    },
+    {
+        "id": "4b100a82c971efc3",
+        "type": "inject",
+        "z": "6805408c9bb2bde9",
+        "name": "inject 8 single random number payload",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "8",
+        "payloadType": "num",
+        "x": 1630,
+        "y": 780,
+        "wires": [
+            [
+                "276930ecf60194de"
+            ]
+        ]
+    },
+    {
+        "id": "29d0d2e137d26725",
+        "type": "debug",
+        "z": "6805408c9bb2bde9",
+        "name": "",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1850,
+        "y": 600,
+        "wires": []
+    },
+    {
+        "id": "ee852ebf07be97ef",
+        "type": "ui_dropdown",
+        "z": "6805408c9bb2bde9",
+        "name": "Sample Size Dropdown",
+        "label": "Sample Size",
+        "tooltip": "Sample Size power of 2 for FFT usage (2^n)",
+        "place": "Sample Size (2^n)",
+        "group": "bea23e66643ca7ab",
+        "order": 2,
+        "width": "6",
+        "height": "1",
+        "passthru": true,
+        "multiple": false,
+        "options": [
+            {
+                "label": "524288 (2^19)",
+                "value": 524288,
+                "type": "num"
+            },
+            {
+                "label": "262144 (2^18)",
+                "value": 262144,
+                "type": "num"
+            },
+            {
+                "label": "131072 (2^17)",
+                "value": 131072,
+                "type": "num"
+            },
+            {
+                "label": "65536 (2^16)",
+                "value": 65536,
+                "type": "num"
+            },
+            {
+                "label": "32768 (2^15)",
+                "value": 32768,
+                "type": "num"
+            },
+            {
+                "label": "16384 (2^14)",
+                "value": 16384,
+                "type": "num"
+            },
+            {
+                "label": "8192 (2^13)",
+                "value": "8192",
+                "type": "str"
+            },
+            {
+                "label": "4096 (2^12)",
+                "value": 4096,
+                "type": "num"
+            },
+            {
+                "label": "2048 (2^11)",
+                "value": 2048,
+                "type": "num"
+            },
+            {
+                "label": "1024 (2^10)",
+                "value": 1024,
+                "type": "num"
+            },
+            {
+                "label": "512 (2^9)",
+                "value": 512,
+                "type": "num"
+            },
+            {
+                "label": "256 (2^8)",
+                "value": 256,
+                "type": "num"
+            },
+            {
+                "label": "128 (2^7)",
+                "value": 128,
+                "type": "num"
+            },
+            {
+                "label": "64 (2^6)",
+                "value": 64,
+                "type": "num"
+            },
+            {
+                "label": "32 (2^5)",
+                "value": 32,
+                "type": "num"
+            },
+            {
+                "label": "16 (2^4)",
+                "value": 16,
+                "type": "num"
+            },
+            {
+                "label": "8 (2^3)",
+                "value": 8,
+                "type": "num"
+            },
+            {
+                "label": "4 (2^2)",
+                "value": 4,
+                "type": "num"
+            },
+            {
+                "label": "2 (2^1)",
+                "value": 2,
+                "type": "num"
+            }
+        ],
+        "payload": "",
+        "topic": "topic",
+        "topicType": "msg",
+        "className": "",
+        "x": 1490,
+        "y": 480,
+        "wires": [
+            [
+                "18da27cb1d9b7102"
+            ]
+        ]
+    },
+    {
+        "id": "d76f007f095aa2e4",
+        "type": "debug",
+        "z": "6805408c9bb2bde9",
+        "name": "",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1730,
+        "y": 440,
+        "wires": []
+    },
+    {
+        "id": "71dd3bd7f8cf81d9",
+        "type": "inject",
+        "z": "6805408c9bb2bde9",
+        "name": "set to default size (4)",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "4",
+        "payloadType": "num",
+        "x": 1480,
+        "y": 520,
+        "wires": [
+            [
+                "ee852ebf07be97ef"
+            ]
+        ]
+    },
+    {
+        "id": "18da27cb1d9b7102",
+        "type": "function",
+        "z": "6805408c9bb2bde9",
+        "name": "check if valid power of two",
+        "func": "var val = Number(msg.payload);\nif (0 > val) return;  //dont even bother with negatives\n\n    msg.setNewBufferSize = val;\n    var logvaln = Math.log(val)/Math.log(2);\n    var logval_floor = Math.floor(logvaln);\n    if ((0 != val) && (0 == logvaln - logval_floor))  //is a non-zero whole number\n    {\n        //valid!\n        msg.payload = 1;\n        msg.enabled = 1;\n    }\n    else\n    {\n        msg.payload = 0;\n        msg.enabled = 0;\n    }\n\n//set a new BUFFER size (stored in msg.setNewBufferSize)\n//if msg.payload or msg.enabled are equal to 0, the size is not valid\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1510,
+        "y": 440,
+        "wires": [
+            [
+                "d76f007f095aa2e4",
+                "276930ecf60194de",
+                "a4df19926336d4f6"
+            ]
+        ]
+    },
+    {
+        "id": "7eff5f93fb3dca52",
+        "type": "ui_switch",
+        "z": "6805408c9bb2bde9",
+        "d": true,
+        "name": "",
+        "label": "Release buffer with every new value",
+        "tooltip": "the alternative is to wait for the buffer to refill each time",
+        "group": "bea23e66643ca7ab",
+        "order": 20,
+        "width": 6,
+        "height": 1,
+        "passthru": true,
+        "decouple": "false",
+        "topic": "each_time_or_not_once_per_fill",
+        "topicType": "str",
+        "style": "",
+        "onvalue": "true",
+        "onvalueType": "bool",
+        "onicon": "",
+        "oncolor": "",
+        "offvalue": "false",
+        "offvalueType": "bool",
+        "officon": "",
+        "offcolor": "",
+        "animate": false,
+        "className": "",
+        "x": 810,
+        "y": 1440,
+        "wires": [
+            [
+                "1326466b36439d9e"
+            ]
+        ]
+    },
+    {
+        "id": "50f18874b1f44cc4",
+        "type": "inject",
+        "z": "6805408c9bb2bde9",
+        "name": "inject 7 single random number payload",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "7",
+        "payloadType": "num",
+        "x": 1650,
+        "y": 740,
+        "wires": [
+            [
+                "276930ecf60194de"
+            ]
+        ]
+    },
+    {
+        "id": "5c208462640f708a",
+        "type": "inject",
+        "z": "6805408c9bb2bde9",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "each_time_or_once_per_fill",
+        "payload": "true",
+        "payloadType": "bool",
+        "x": 690,
+        "y": 1520,
+        "wires": [
+            [
+                "7eff5f93fb3dca52"
+            ]
+        ]
+    },
+    {
+        "id": "ca345ae90d721fa6",
+        "type": "inject",
+        "z": "6805408c9bb2bde9",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "each_time_or_once_per_fill",
+        "payload": "false",
+        "payloadType": "bool",
+        "x": 750,
+        "y": 1560,
+        "wires": [
+            [
+                "7eff5f93fb3dca52"
+            ]
+        ]
+    },
+    {
+        "id": "1326466b36439d9e",
+        "type": "debug",
+        "z": "6805408c9bb2bde9",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1270,
+        "y": 1440,
+        "wires": []
+    },
+    {
+        "id": "f9965bbde0b58eee",
+        "type": "debug",
+        "z": "6805408c9bb2bde9",
+        "name": "",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1030,
+        "y": 1200,
+        "wires": []
+    },
+    {
+        "id": "6959588e2bafd4c3",
+        "type": "inject",
+        "z": "6805408c9bb2bde9",
+        "name": "Discard",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "configPOTaction",
+        "payload": "Discard",
+        "payloadType": "str",
+        "x": 640,
+        "y": 1160,
+        "wires": [
+            [
+                "1f79074928a7823d"
+            ]
+        ]
+    },
+    {
+        "id": "e505f986a6fb89ba",
+        "type": "inject",
+        "z": "6805408c9bb2bde9",
+        "name": "Pad",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "configPOTaction",
+        "payload": "Pad",
+        "payloadType": "str",
+        "x": 630,
+        "y": 1200,
+        "wires": [
+            [
+                "1f79074928a7823d"
+            ]
+        ]
+    },
+    {
+        "id": "0c4e9a21880f72ef",
+        "type": "inject",
+        "z": "6805408c9bb2bde9",
+        "name": "Truncate",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "configPOTaction",
+        "payload": "Truncate",
+        "payloadType": "str",
+        "x": 640,
+        "y": 1240,
+        "wires": [
+            [
+                "1f79074928a7823d"
+            ]
+        ]
+    },
+    {
+        "id": "160d4459d5a5c824",
+        "type": "comment",
+        "z": "6805408c9bb2bde9",
+        "name": "The FFT here is made for 2^n data - choose what to do if its not",
+        "info": "",
+        "x": 970,
+        "y": 1160,
+        "wires": []
+    },
+    {
+        "id": "c89c2051874ebcf1",
+        "type": "inject",
+        "z": "6805408c9bb2bde9",
+        "name": "disable",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "enable",
+                "v": "false",
+                "vt": "bool"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": "0.5",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 660,
+        "y": 1300,
+        "wires": [
+            [
+                "1f79074928a7823d"
+            ]
+        ]
+    },
+    {
+        "id": "a8051d7cce8363f8",
+        "type": "inject",
+        "z": "6805408c9bb2bde9",
+        "name": "enable",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "enable",
+                "v": "true",
+                "vt": "bool"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 650,
+        "y": 1340,
+        "wires": [
+            [
+                "1f79074928a7823d"
+            ]
+        ]
+    },
+    {
+        "id": "1f79074928a7823d",
+        "type": "ui_multistate_switch",
+        "z": "6805408c9bb2bde9",
+        "d": true,
+        "name": "Non-2^N data behaviour",
+        "group": "bea23e66643ca7ab",
+        "order": 21,
+        "width": 6,
+        "height": 1,
+        "label": "Non - 2^n",
+        "stateField": "payload",
+        "enableField": "enable",
+        "passthroughField": "passthrough",
+        "inputMsgField": "inputmsg",
+        "rounded": true,
+        "useThemeColors": true,
+        "hideSelectedLabel": false,
+        "multilineLabel": false,
+        "passThrough": "change",
+        "inputMsg": "all",
+        "userInput": "enabled_show",
+        "options": [
+            {
+                "label": "Pad",
+                "value": "Pad",
+                "valueType": "str",
+                "color": "#009933"
+            },
+            {
+                "label": "Discard",
+                "value": "Discard",
+                "valueType": "str",
+                "color": "#ff6666"
+            },
+            {
+                "label": "Trucate",
+                "value": "Truncate",
+                "valueType": "str",
+                "color": "#999999"
+            }
+        ],
+        "topic": "configPOTaction",
+        "x": 850,
+        "y": 1200,
+        "wires": [
+            [
+                "f9965bbde0b58eee"
+            ]
+        ]
+    },
+    {
+        "id": "6f5e2ed40774a28a",
+        "type": "comment",
+        "z": "6805408c9bb2bde9",
+        "name": "UNimplemented stuff",
+        "info": "",
+        "x": 690,
+        "y": 1080,
+        "wires": []
+    },
+    {
+        "id": "5e7c1ec018a3db4b",
+        "type": "comment",
+        "z": "6805408c9bb2bde9",
+        "name": "Set the Time-data BUFFER size",
+        "info": "",
+        "x": 1490,
+        "y": 400,
+        "wires": []
+    },
+    {
+        "id": "bc0183c515f2b761",
+        "type": "comment",
+        "z": "6805408c9bb2bde9",
+        "name": "a0 only",
+        "info": "",
+        "x": 2790,
+        "y": 440,
+        "wires": []
+    },
+    {
+        "id": "528ae36af68b4ce0",
+        "type": "comment",
+        "z": "6805408c9bb2bde9",
+        "name": "PHASE",
+        "info": "",
+        "x": 3070,
+        "y": 600,
+        "wires": []
+    },
+    {
+        "id": "64da86bc9d23221c",
+        "type": "comment",
+        "z": "6805408c9bb2bde9",
+        "name": "MAGNITUDES",
+        "info": "",
+        "x": 3060,
+        "y": 1080,
+        "wires": []
+    },
+    {
+        "id": "7c268354fb4e7b89",
+        "type": "debug",
+        "z": "6805408c9bb2bde9",
+        "name": "",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 690,
+        "y": 680,
+        "wires": []
+    },
+    {
+        "id": "2eaa013a25840db5",
+        "type": "dweetio in",
+        "z": "6805408c9bb2bde9",
+        "thing": "fishinator005",
+        "name": "",
+        "x": 250,
+        "y": 720,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "b84902d0636ba5d6",
+        "type": "websocket in",
+        "z": "6805408c9bb2bde9",
+        "name": "",
+        "server": "945e1413421b2d65",
+        "client": "",
+        "x": 250,
+        "y": 680,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "1fb0afe746da2d98",
+        "type": "function",
+        "z": "6805408c9bb2bde9",
+        "name": "payload number sanity check",
+        "func": "if (Number.isFinite(msg.payload)) return msg;\nelse return msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1220,
+        "y": 640,
+        "wires": [
+            [
+                "276930ecf60194de",
+                "cc52da256d7b0738",
+                "7f9e7ee042d1f548"
+            ]
+        ]
+    },
+    {
+        "id": "d09fd9dd3741f8fd",
+        "type": "ui_text",
+        "z": "6805408c9bb2bde9",
+        "group": "bea23e66643ca7ab",
+        "order": 13,
+        "width": 0,
+        "height": 0,
+        "name": "",
+        "label": "FFT Calculation Time: ",
+        "format": "{{msg.fftcalcdelay + \" mSec\"}}",
+        "layout": "row-left",
+        "className": "",
+        "x": 2380,
+        "y": 580,
+        "wires": []
+    },
+    {
+        "id": "108ac1d917940a13",
+        "type": "comment",
+        "z": "6805408c9bb2bde9",
+        "name": "Un/Pause FFT - ONLY toggles graph live updating",
+        "info": "",
+        "x": 3770,
+        "y": 1280,
+        "wires": []
+    },
+    {
+        "id": "a8ced20bd5d6b615",
+        "type": "comment",
+        "z": "6805408c9bb2bde9",
+        "name": "If data comes slowly, this let's you know if it's still coming",
+        "info": "",
+        "x": 3890,
+        "y": 820,
+        "wires": []
+    },
+    {
+        "id": "4c4d33577e080d9c",
+        "type": "comment",
+        "z": "6805408c9bb2bde9",
+        "name": "Logic to regulate SAMPLE SIZE or DATA RATE for FFT calculations",
+        "info": "",
+        "x": 1320,
+        "y": 120,
+        "wires": []
+    },
+    {
+        "id": "a516964016de4120",
+        "type": "delay",
+        "z": "6805408c9bb2bde9",
+        "name": "variable-rate delay, drop intermediates",
+        "pauseType": "rate",
+        "timeout": "5",
+        "timeoutUnits": "seconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": true,
+        "allowrate": true,
+        "outputs": 1,
+        "x": 790,
+        "y": 640,
+        "wires": [
+            [
+                "92a348f49ba4c75f",
+                "1fb0afe746da2d98"
+            ]
+        ]
+    },
+    {
+        "id": "ea94b32a8a25b2a7",
+        "type": "inject",
+        "z": "6805408c9bb2bde9",
+        "name": "rate limit inject (1mSec)",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "rate",
+                "v": "1",
+                "vt": "num"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 830,
+        "y": 600,
+        "wires": [
+            [
+                "a516964016de4120"
+            ]
+        ]
+    },
+    {
+        "id": "92a348f49ba4c75f",
+        "type": "debug",
+        "z": "6805408c9bb2bde9",
+        "name": "",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1150,
+        "y": 600,
+        "wires": []
+    },
+    {
+        "id": "2e737b3b0e6c234a",
+        "type": "comment",
+        "z": "6805408c9bb2bde9",
+        "name": "If the FFT takes too long to compute, reduce the sample size or reduce the data rate",
+        "info": "",
+        "x": 1350,
+        "y": 80,
+        "wires": []
+    },
+    {
+        "id": "b2ef72669190138b",
+        "type": "inject",
+        "z": "6805408c9bb2bde9",
+        "name": "arbitrary number",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 1500,
+        "y": 560,
+        "wires": [
+            [
+                "ee852ebf07be97ef"
+            ]
+        ]
+    },
+    {
+        "id": "eca16cdb8d1ffae5",
+        "type": "comment",
+        "z": "6805408c9bb2bde9",
+        "name": "PAYLOAD IN HERE",
+        "info": "",
+        "x": 370,
+        "y": 600,
+        "wires": []
+    },
+    {
+        "id": "a4df19926336d4f6",
+        "type": "function",
+        "z": "6805408c9bb2bde9",
+        "name": "ADJECT (adjust) - 1+AB",
+        "func": "var timeBetweenPayloads = context.get('timeBetweenPayloads')||0;\nvar fftcalcdelay = context.get('fftcalcdelay')||0;\nvar currentBufferSize = context.get('currentBufferSize')||0;\n\nif ('undefined' != typeof msg.setNewBufferSize)\n{ \n    if (0 != msg.payload) //zero (0) indicates an invalid buffer size\n    {\n        currentBufferSize = msg.setNewBufferSize;\n    }\n    context.set('currentBufferSize',currentBufferSize);\n}\n    \nif ('undefined' != typeof msg.timeBetweenPayloads)\n{\n    timeBetweenPayloads = Number(msg.timeBetweenPayloads);\n    context.set('timeBetweenPayloads',timeBetweenPayloads);\n}\n\nif ('undefined' != typeof msg.fftcalcdelay)\n{\n    fftcalcdelay = Number(msg.fftcalcdelay);\n    context.set('fftcalcdelay',msg.fftcalcdelay);\n}\n\n\nnode.status({\"text\":\"cBS:\"+currentBufferSize\n                +\" - tBP:\"+ timeBetweenPayloads+\"mS\"\n                +\" - fftCD:\"+fftcalcdelay+\"mS\"});\n                \nmsg.currentBufferSize = currentBufferSize;\nmsg.timeBetweenPayloads = timeBetweenPayloads;\nmsg.fftcalcdelay = fftcalcdelay;\n\nif (2*fftcalcdelay > timeBetweenPayloads)\n{\n    //either slow down the data rate, or decrease the FFT sample size\n    \n    //slow down the data rate - send to the data rate limiter\n    msg.rate = 2*fftcalcdelay+1; //plus one so we don't set a rate to zero\n    node.warn({\"text\":\"WARN: downstream sample rate has been artificially\"\n                    +\" adjusted.  Beware Aliasing.\"})\n    \n    //decrease the FFT sample size - send to the sample size selection\n    msg.payload = currentBufferSize/2;\n    return [msg,msg,msg];\n}\n\nif ('object' != typeof msg.payload)\n    return [null,null,null];\nelse\n    return [msg,null,null];\n",
+        "outputs": 3,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1190,
+        "y": 160,
+        "wires": [
+            [
+                "44ef9a5d099971fa",
+                "6bd434e80d126e32"
+            ],
+            [
+                "ee852ebf07be97ef"
+            ],
+            [
+                "a516964016de4120"
+            ]
+        ],
+        "outputLabels": [
+            "status information",
+            "adjust sample SIZE",
+            "adjust sample RATE"
+        ]
+    },
+    {
+        "id": "cc52da256d7b0738",
+        "type": "function",
+        "z": "6805408c9bb2bde9",
+        "name": "time between last data and this one",
+        "func": "const timenoodle = context.get('lastTimestamp')||0;\nconst nowsthetime = Date.now();\ncontext.set('lastTimestamp',nowsthetime);\n\nif (0 != timenoodle)\n{\n    msg.payload = null;\n    msg.timeBetweenPayloads = nowsthetime - timenoodle;\n    node.status({\"text\":\"Time between payloads: \"+msg.timeBetweenPayloads+\" mSec\"});\n    return msg;\n}\nnode.status({\"text\":\"First payload (\"+nowsthetime+\")\"});\n\nreturn null;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 840,
+        "y": 160,
+        "wires": [
+            [
+                "a4df19926336d4f6",
+                "a6f382d42e79108d",
+                "be05b08958e8cc38"
+            ]
+        ]
+    },
+    {
+        "id": "7f9e7ee042d1f548",
+        "type": "debug",
+        "z": "6805408c9bb2bde9",
+        "name": "",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1430,
+        "y": 680,
+        "wires": []
+    },
+    {
+        "id": "a6f382d42e79108d",
+        "type": "debug",
+        "z": "6805408c9bb2bde9",
+        "name": "",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 950,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "d9db2afab15af5f9",
+        "type": "link in",
+        "z": "6805408c9bb2bde9",
+        "name": "Single Value input (msg.payload)",
+        "links": [],
+        "x": 195,
+        "y": 640,
+        "wires": [
+            [
+                "341f99f9db32df5d"
+            ]
+        ]
+    },
+    {
+        "id": "56315c7e9612ef81",
+        "type": "comment",
+        "z": "6805408c9bb2bde9",
+        "name": "update the phase function from the magnitude work",
+        "info": "",
+        "x": 3410,
+        "y": 600,
+        "wires": []
+    },
+    {
+        "id": "2d7a802bbc1fc9a3",
+        "type": "function",
+        "z": "6805408c9bb2bde9",
+        "name": "Buffer fill percentage",
+        "func": "var countNumberofData = context.get('countNumberofData')||0;\ncountNumberofData = countNumberofData + 1;\ncontext.set('countNumberofData',countNumberofData);\nvar localobj = msg.payload;\n\nvar ratio = 0;\n\nif (0 != localobj.length)\n{\n   ratio = 100*countNumberofData/localobj.length;\n   if (100 < ratio) ratio = 100;\n   \n   if (100 > ratio)\n        msg.label = \"Zero-Padded FFT Buffer Filled: \"\n    else\n        msg.label = \"FFT Buffer Filled: \"; \n}\n\nmsg.payload = ratio.toFixed(3);\nmsg.topic = \"FFT Buffer filled percentage\"\nnode.status({\"text\":\"Buffer Filled \"+ratio.toFixed(4)+\" %\"})\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 2100,
+        "y": 640,
+        "wires": [
+            [
+                "39a052f323592fb1",
+                "22d19456f9415131"
+            ]
+        ]
+    },
+    {
+        "id": "39a052f323592fb1",
+        "type": "debug",
+        "z": "6805408c9bb2bde9",
+        "name": "",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 2350,
+        "y": 680,
+        "wires": []
+    },
+    {
+        "id": "22d19456f9415131",
+        "type": "ui_text",
+        "z": "6805408c9bb2bde9",
+        "group": "bea23e66643ca7ab",
+        "order": 1,
+        "width": "6",
+        "height": "1",
+        "name": "Zero-Padded FFT Buffer Filled: ",
+        "label": "{{msg.label}}",
+        "format": "{{msg.payload + \"  %\"}}",
+        "layout": "row-left",
+        "className": "",
+        "x": 2410,
+        "y": 640,
+        "wires": []
+    },
+    {
+        "id": "be05b08958e8cc38",
+        "type": "ui_text",
+        "z": "6805408c9bb2bde9",
+        "group": "bea23e66643ca7ab",
+        "order": 14,
+        "width": 0,
+        "height": 0,
+        "name": "",
+        "label": "Time between Samples: ",
+        "format": "{{msg.timeBetweenPayloads + \" mSec\"}}",
+        "layout": "row-left",
+        "className": "",
+        "x": 910,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "44ef9a5d099971fa",
+        "type": "function",
+        "z": "6805408c9bb2bde9",
+        "name": "calc ave freq over {{msg.payload}} samples",
+        "func": "//this function doesn't care about the msg.payload\n\nif ('undefined' == typeof (msg.timeBetweenPayloads)) return null;\n\nvar runningsumstring = context.get('runningsumstring')||JSON.stringify({\"sum\":0,\"count\":0});\nvar runningsum = JSON.parse(runningsumstring);\nnode.status({\"text\":runningsumstring+\"  \"+runningsum.count});\n\ndeltaT = Number(msg.timeBetweenPayloads);\nif (0 == deltaT) return null;\n\nvar localsum = Number(runningsum.sum) + deltaT;\nvar localcount = Number(runningsum.count) + 1;\n\nmsg.payload = (localcount*1000/localsum).toFixed(5);\n\nif (\"reset\" == msg.topic) {localsum = 0;localcount=0;}\n\nmsg.topic = \"MeanSampleFreq\";\n\nif (localcount > 10000)\n{\n    var av = localsum/localcount;\n    localcount = 2000;\n    localsum = av*localcount;\n}\n\nvar mynewobject = {\"sum\":localsum,\"count\":localcount};\n\ncontext.set('runningsumstring',JSON.stringify(mynewobject));\n\nreturn msg;\n\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1950,
+        "y": 140,
+        "wires": [
+            [
+                "c91ff4439779d837",
+                "bb5f2cd68afa6e29",
+                "ea83601dd10e8255"
+            ]
+        ]
+    },
+    {
+        "id": "341f99f9db32df5d",
+        "type": "function",
+        "z": "6805408c9bb2bde9",
+        "name": "NEXUS INPUT",
+        "func": "\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 480,
+        "y": 640,
+        "wires": [
+            [
+                "a516964016de4120",
+                "7c268354fb4e7b89"
+            ]
+        ]
+    },
+    {
+        "id": "c91ff4439779d837",
+        "type": "debug",
+        "z": "6805408c9bb2bde9",
+        "name": "",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 2210,
+        "y": 80,
+        "wires": []
+    },
+    {
+        "id": "bb5f2cd68afa6e29",
+        "type": "ui_text",
+        "z": "6805408c9bb2bde9",
+        "group": "bea23e66643ca7ab",
+        "order": 15,
+        "width": 0,
+        "height": 0,
+        "name": "Average Sample Frequency: ",
+        "label": "Average Sample Frequency: ",
+        "format": "{{msg.payload +\" Hz\"}}",
+        "layout": "row-left",
+        "className": "",
+        "x": 2320,
+        "y": 140,
+        "wires": []
+    },
+    {
+        "id": "0181b987797a28a3",
+        "type": "inject",
+        "z": "6805408c9bb2bde9",
+        "name": "reset",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "reset",
+        "payload": "",
+        "payloadType": "date",
+        "x": 1610,
+        "y": 200,
+        "wires": [
+            [
+                "44ef9a5d099971fa"
+            ]
+        ]
+    },
+    {
+        "id": "6bd434e80d126e32",
+        "type": "debug",
+        "z": "6805408c9bb2bde9",
+        "name": "",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1590,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "656503f6ba6b55f2",
+        "type": "function",
+        "z": "6805408c9bb2bde9",
+        "name": "FFT passthru (pauseable)",
+        "func": "var currentFFPauseState = context.get('FFPauseState')||\"run\";\n    \nif (\"FFTpausetoggle\" == msg.topic)\n{\n    //msg.colour will change the button \n    if (\"pause\" == currentFFPauseState)\n    {\n        currentFFPauseState = \"run\"\n        msg.colour = \"green\";\n        msg.payload = \"running\";\n    }\n    else\n    {\n        \n        currentFFPauseState = \"pause\"  \n        msg.colour = \"red\";\n        msg.payload = \"paused\";\n    }\n    context.set('FFPauseState',currentFFPauseState);\n    node.status({\"text\": \"State: \"+currentFFPauseState, \"shape\": \"ring\", \"fill\":msg.colour});\n    //msg.payload = null;\n    return [null,msg];\n}\nelse\n{\n    if (\"pause\" == currentFFPauseState) return [null,null];\n    else return [msg,null];\n}\n\nreturn [null,null];//should have ducked out by now",
+        "outputs": 2,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 3690,
+        "y": 640,
+        "wires": [
+            [
+                "c97a2177beea5049"
+            ],
+            []
+        ],
+        "outputLabels": [
+            "passthru packet",
+            "update button control"
+        ]
+    },
+    {
+        "id": "3530c373715aa668",
+        "type": "ui_button",
+        "z": "6805408c9bb2bde9",
+        "name": "",
+        "group": "bea23e66643ca7ab",
+        "order": 11,
+        "width": "2",
+        "height": "2",
+        "passthru": true,
+        "label": "Clear",
+        "tooltip": " Clears the graphs (Does not impact data)",
+        "color": "",
+        "bgcolor": "",
+        "className": "",
+        "icon": "fa-circle-o",
+        "payload": "[]",
+        "payloadType": "json",
+        "topic": "topic",
+        "topicType": "msg",
+        "x": 3430,
+        "y": 320,
+        "wires": [
+            [
+                "c97a2177beea5049",
+                "198c3b65f3b1f66b",
+                "42992f8cb33f27cd",
+                "daeeb7e04ebe07b6"
+            ]
+        ]
+    },
+    {
+        "id": "bea23e66643ca7ab",
+        "type": "ui_group",
+        "name": "FFT Analysis",
+        "tab": "9120779398a1a3c5",
+        "order": 2,
+        "disp": true,
+        "width": "6",
+        "collapse": false,
+        "className": ""
+    },
+    {
+        "id": "945e1413421b2d65",
+        "type": "websocket-listener",
+        "path": "/ws/test",
+        "wholemsg": "true"
+    },
+    {
+        "id": "9120779398a1a3c5",
+        "type": "ui_tab",
+        "name": "fft tab",
+        "icon": "dashboard",
+        "order": 3,
+        "disabled": false,
+        "hidden": false
+    }
+]
