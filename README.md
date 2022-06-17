@@ -5,6 +5,18 @@ This subflow is its own tab in the dashboard-ui display.
 
 I put this tool together for my own purposes, and thought others might make use of it as well.  My application was display and analysis of low sampling rates (shown as "Average Sample Frequency" in the screencaps, below.
 
+## FFT Engine / required library
+
+  fft-js     https://www.npmjs.com/package/fft-js
+  Pure Node.js implementation of the Fast Fourier Transform (Cooley-Tukey Method)
+
+  sudo npm install -g fft-js
+
+  in settings.js:
+
+      functionGlobalContext: {
+        fftjs:require('fft-js')
+      },
   
 # Screencaps
 
@@ -113,9 +125,6 @@ I put this tool together for my own purposes, and thought others might make use 
 
 
   
-## FFT Engine
-
-fft-js    https://www.npmjs.com/package/fft-js
 
 # But wait, there's more!
   
