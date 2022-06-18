@@ -2,8 +2,9 @@
     {
         "id": "6805408c9bb2bde9",
         "type": "subflow",
-        "name": "Subflow 1",
+        "name": "FFT analysis Subflow",
         "info": "",
+        "category": "",
         "in": [
             {
                 "x": 180,
@@ -15,7 +16,10 @@
                 ]
             }
         ],
-        "out": []
+        "out": [],
+        "env": [],
+        "meta": {},
+        "color": "#DDAA99"
     },
     {
         "id": "a315a19f96128d12",
@@ -1768,28 +1772,19 @@
         "wires": []
     },
     {
-        "id": "2eaa013a25840db5",
-        "type": "dweetio in",
-        "z": "6805408c9bb2bde9",
-        "thing": "fishinator005",
-        "name": "",
-        "x": 250,
-        "y": 720,
-        "wires": [
-            []
-        ]
-    },
-    {
         "id": "b84902d0636ba5d6",
         "type": "websocket in",
         "z": "6805408c9bb2bde9",
+        "d": true,
         "name": "",
         "server": "945e1413421b2d65",
         "client": "",
         "x": 250,
         "y": 680,
         "wires": [
-            []
+            [
+                "341f99f9db32df5d"
+            ]
         ]
     },
     {
