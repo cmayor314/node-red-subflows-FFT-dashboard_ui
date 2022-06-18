@@ -1520,9 +1520,7 @@
         "x": 640,
         "y": 1160,
         "wires": [
-            [
-                "1f79074928a7823d"
-            ]
+            []
         ]
     },
     {
@@ -1549,9 +1547,7 @@
         "x": 630,
         "y": 1200,
         "wires": [
-            [
-                "1f79074928a7823d"
-            ]
+            []
         ]
     },
     {
@@ -1578,9 +1574,7 @@
         "x": 640,
         "y": 1240,
         "wires": [
-            [
-                "1f79074928a7823d"
-            ]
+            []
         ]
     },
     {
@@ -1618,9 +1612,7 @@
         "x": 660,
         "y": 1300,
         "wires": [
-            [
-                "1f79074928a7823d"
-            ]
+            []
         ]
     },
     {
@@ -1648,60 +1640,7 @@
         "x": 650,
         "y": 1340,
         "wires": [
-            [
-                "1f79074928a7823d"
-            ]
-        ]
-    },
-    {
-        "id": "1f79074928a7823d",
-        "type": "ui_multistate_switch",
-        "z": "6805408c9bb2bde9",
-        "d": true,
-        "name": "Non-2^N data behaviour",
-        "group": "bea23e66643ca7ab",
-        "order": 21,
-        "width": 6,
-        "height": 1,
-        "label": "Non - 2^n",
-        "stateField": "payload",
-        "enableField": "enable",
-        "passthroughField": "passthrough",
-        "inputMsgField": "inputmsg",
-        "rounded": true,
-        "useThemeColors": true,
-        "hideSelectedLabel": false,
-        "multilineLabel": false,
-        "passThrough": "change",
-        "inputMsg": "all",
-        "userInput": "enabled_show",
-        "options": [
-            {
-                "label": "Pad",
-                "value": "Pad",
-                "valueType": "str",
-                "color": "#009933"
-            },
-            {
-                "label": "Discard",
-                "value": "Discard",
-                "valueType": "str",
-                "color": "#ff6666"
-            },
-            {
-                "label": "Trucate",
-                "value": "Truncate",
-                "valueType": "str",
-                "color": "#999999"
-            }
-        ],
-        "topic": "configPOTaction",
-        "x": 850,
-        "y": 1200,
-        "wires": [
-            [
-                "f9965bbde0b58eee"
-            ]
+            []
         ]
     },
     {
