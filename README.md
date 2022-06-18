@@ -17,9 +17,11 @@ This subflow uses *node-red-contrib-ui-multistate-switch* for an upcoming featur
   fft-js     https://www.npmjs.com/package/fft-js
   Pure Node.js implementation of the Fast Fourier Transform (Cooley-Tukey Method)
 
-  sudo npm install -g fft-js
+  npm install fft-js
+  
+  ( or sudo npm install -g fft-js to install in the non-local node-red libraries)
 
-  in settings.js:
+  in settings.js (**very important**):
 
       functionGlobalContext: {
         fftjs:require('fft-js')
