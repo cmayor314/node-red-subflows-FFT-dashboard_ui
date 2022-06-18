@@ -1,9 +1,11 @@
 # node-red-subflows-FFT-dashboard_ui
-node-red-subflows-FFT-dashboard-ui accepts raw streaming numbers.  An entire dashboard-ui tab is devoted to information and control of the display.
+*node-red-subflows-FFT-dashboard-ui* accepts raw streaming numbers.  An entire *dashboard-ui* tab is devoted to information and control of the display.
 
-This subflow is its own tab in the dashboard-ui display.
+This subflow is its own tab in the *dashboard-ui* display. *dashboard-ui* is, of course, required.
 
-I put this tool together for my own purposes, and thought others might make use of it as well.  My application was display and analysis of low sampling rates (shown as "Average Sample Frequency" in the screencaps, below.
+I put this tool together for my own purposes, and thought others might make use of it as well.  My application was display and analysis of low sampling rate data.  Run it as fast as you can, but I haven't even tested this at audio frequencies.
+
+This subflow uses *node-red-contrib-ui-multistate-switch* for an upcoming feature, but it is currently disabled.  You can ignore the warning, or remove that section from the subflow (bottom left).
 
 ## Inputs
 
