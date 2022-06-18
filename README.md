@@ -26,7 +26,19 @@ I put this tool together for my own purposes, and thought others might make use 
       functionGlobalContext: {
         fftjs:require('fft-js')
       },
-  
+
+## Automatic crash-stopper
+
+If the time to calculate the FFT is greater than time between data points, the system
+will force you to a smaller buffer sample size, automatically.  Because this subflows 
+raison d'etre is *live streaming FFT data*, the FFT must keep up with data.
+
+There is also a *commented out section* of code that will allow the subflow to impose
+more restrictions on the input data rate, but in the current incarnation limiting the 
+data rate will lead to [signal aliasing](https://en.wikipedia.org/wiki/Aliasing), which is bad. 
+
+If you want to go faster, use more/faster processors.
+
 # Screencaps
 
 ![image](https://user-images.githubusercontent.com/105139648/174211742-bc2c1930-5828-4054-97e7-32734d1f83f6.png)  ![image](https://user-images.githubusercontent.com/105139648/174219573-93fec829-8300-4528-ba9d-27002a74abc2.png)
