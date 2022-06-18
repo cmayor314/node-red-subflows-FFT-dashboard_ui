@@ -7,6 +7,8 @@ I put this tool together for my own purposes, and thought others might make use 
 
 This subflow uses *node-red-contrib-ui-multistate-switch* for an upcoming feature, but it is currently disabled.  You can ignore the warning, or remove that section from the subflow (bottom left).
 
+![image](https://user-images.githubusercontent.com/105139648/174423989-e5be3121-467b-4e9e-828d-8a1541ec9d47.png)
+
 ## Inputs
 
   The sub-flow is expecting an input that has a *numerical value* in *msg.payload*
