@@ -5,6 +5,11 @@ This subflow is its own tab in the dashboard-ui display.
 
 I put this tool together for my own purposes, and thought others might make use of it as well.  My application was display and analysis of low sampling rates (shown as "Average Sample Frequency" in the screencaps, below.
 
+## Inputs
+
+  The sub-flow is expecting an input that has a *numerical value* in *msg.payload*
+  If you include a millisecond timestamp (e.g., from Date.now()) as msg.timestamp, that has upcoming application.
+
 ## FFT Engine / required library
 
   fft-js     https://www.npmjs.com/package/fft-js
