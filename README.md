@@ -29,9 +29,11 @@ I put this tool together for my own purposes, and thought others might make use 
 
 ## Automatic crash-stopper
 
-If the time to calculate the FFT is greater than time between data points, the system
-will force you to a smaller buffer sample size, automatically.  Because this subflows 
-raison d'etre is *live streaming FFT data*, the FFT must keep up with data.
+If the time to calculate the FFT is greater than the time between data points, the system
+will force you to use a smaller buffer sample size, automatically.  (The sample size selection 
+window will change to reflect the new size)  Because this subflows raison d'etre (reason to be) is 
+*live streaming FFT data*, the FFT must be calculable within one sample period 
+so the software can keep up with the data rate.
 
 There is also a *commented out section* of code that will allow the subflow to impose
 more restrictions on the input data rate, but in the current incarnation limiting the 
@@ -52,10 +54,10 @@ If you want to go faster, use more/faster processors.
 
 ## FFT Buffer Filled
 
-  The percentage shown is the amount of data in the buffer before calculations are accurate.
+  The percentage shown is the amount of data in the buffer before the calculations shown are accurate.
   It is feedback for my impatient user (me).
 
-  Until the data buffer on which the FFT is filled, the rest of the buffer has been
+  Until the data buffer (used by the FFT) is filled with data, the rest of the buffer has been
   padded with zeros.
 
   When the sub-flow is freshly started, none of the calculations shown are accurate because
@@ -64,28 +66,31 @@ If you want to go faster, use more/faster processors.
 ## Sample Size
 
   Select from various Power-of-2 buffer sizes (this is a requirement for the used FFT algorithm).
-  The smallest size buffer is 2 (2^0), and the largest buffer currently programmed is 524288 (2^19),
-  but there is no reason it cannot be expanded if your CPU power is capable. (see FFT Calculation Time)
+  The smallest size buffer is 2 (2^1), and the largest buffer currently programmed is 524288 (2^19),
+  but there is no reason the buffer cannot be expanded if your CPU power is capable. (see FFT Calculation Time)
 
 ## FFT Magnitudes Graph
 
-  Live graph displays the magnitudes from the FFT calculation, starting with a0, followed by
-  all the frequency bins.  If a0 is not included in the graph (as per the switch), a0 is shown as a zero 
+  A live graph displays the magnitudes from the FFT calculation, starting with a0, followed by
+  all the frequency bins.  If a0 is not included in the graph (as per the ui switch), a0 is shown as a zero 
   quantity.  The number of frequncies shown can be selected, below.
 
-  The graph is **not** accurate until the FFT Buffer is Filled.  If you are into the Fourier
-  Series, the look of the magnitude and the phase graphs is due to the zero-padding.
+  The graphs are **not** accurate until the FFT Buffer is Filled.  If you are into the Fourier
+  Series, the look of the magnitude and the phase graphs is the effect of the zero-padding.
 
 ## Include a0 switch
 
-  The a0 value might dwarf all the other values when in linear magnitude mode.
-  This switch allows you to include or exclude a0 from the live graph.
+  The a0 magnitude might dwarf all the other magnitudes when in linear magnitude mode.
+  This switch allows you to include or exclude a0 from the live graph so you can see the
+  other magnitudes as well.  (like a switchable DC/AC input coupling on an oscilloscope)
 
 ## Display Magnitudes as linear/log (dB<units>)
   
   Choose to see magnitudes in linear format, or logarithmic.
   (the logarithmic units are deciBels of the input data units)
-  Log(magnitude) mode looks pretty crappy, I gotta say.
+  
+  Log(magnitude) mode looks pretty crappy, I gotta say, but is still accurate. 
+  I haven't bothered to improve the look of it.
 
 ## Pause/Run
   
@@ -93,52 +98,57 @@ If you want to go faster, use more/faster processors.
   
 ## a0 live
  
-  The value of a0 for the currently-shown FFT.  
+  The magnitude of a0 for the currently-shown FFT.  
   a0 is literally the average value over your entire buffer size.
   
 ## FFT Phases Graph
-  
-  Live graph displays the phase angles from the FFT calculation, starting with zero for a0, followed by
-  all the frequency bins.  The a0 switch does not affect this graph. 
+    
+  A live graph displays the phase angless from the FFT calculation, starting with a zero for a0, followed by
+  all the frequency bins.  The a0 switch does not affect this graph.  
   The number of frequncies shown can be selected, below.
-  
-  The graph is **not** accurate until the FFT Buffer is Filled.  If you are into the Fourier
-  Series, the look of the magnitude and the phase graphs is due to the zero-padding.
+    
+  The graphs are **not** accurate until the FFT Buffer is Filled.  If you are into the Fourier
+  Series, the look of the magnitude and the phase graphs is the effect of the zero-padding.
   
 ## Select Number of Frequencies Shown
   
   Can choose from 1-256.   256 pixels is near the useful limit on the 6 unit wide display.
-  This does NOT affect the fft calculation, the purpose is to limit the number of frequencies
-  shown at any update (e.g., for zooming in)
+  This does NOT affect the fft calculation, the purpose of this selection is to limit the 
+  number of frequencies shown. (e.g., for zooming in on the lower frequency bins)
   
 ## Clear Graphs
   
-  Clicking the buttons clears all the graphs.  The graphs will update as soon as the next
-  data arrives.  The button is useful for clearing any weird data from re-deployed flows.
+  Clicking the clear graphs button clears all the graphs.  The graphs will update with fresh data
+  as soon as the next  data arrives.  
+  The button is useful for clearing any weird data from re-deployed node-red flows.
 
 ## a0(t) graph
   
-  Graph of the a0 from FFT calculations, as it changes with each sample.
+  This is a live graph of the a0 magnitude from FFT calculations, as it changes with each sample.
+  a0 is the mean value over all the data; this graph shows the history of the average value.
  
 ## FFT Calculation Time
   
-  The amount of time it just took to run the FFT-js algorithm on your data buffer.  The time required
-  for the calculation will follow square relationship with the amount of samples.  This is pretty
-  useful to compare to Time between Samples, below.  The FFT Calculation Time should **never** exceed the
-  time between samples.
+  The most recent amount of time it took to run the FFT-js algorithm on your data buffer.  The time required
+  for the calculation will follow a square(-ish, it's actually nlog(n)) relationship with the amount of samples.  
+  This measurement is pretty useful to compare to Time between Samples, below.  
+  The FFT Calculation Time should **never** exceed the time between samples.
+  See *Automatic Crash Stopper*, above.
   
 ## Time between Samples
   
   Units in milliseconds, shows how much time passed between the latest data point and the previous one.  
+  See *Automatic Crash Stopper*, above.
   
 ## Average Sample Frequency
   
-  The average sample frequency is based on the last 200-10000 samples, and does some cheat-y tricks to
-  use low memory.  This value (to a couple sig figs) is used to poopulate the (independent) Frequency axis.
+  The average sample frequency is based on the last 2000-10000 samples, and does some cheat-y tricks to
+  use low memory.  This average sampling frequency value (to a couple sig figs) is used to poopulate 
+  the (independent) Frequency axis on the graphs.
   
 ## log frequency scale
   
-  Not implemented.  The switch does nothing.
+  Not implemented.  The switch does nothing.  
   
 ## last update
   
