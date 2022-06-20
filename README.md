@@ -5,7 +5,8 @@ This subflow is its own tab in the *dashboard-ui* display. *dashboard-ui* is, of
 
 I put this tool together for my own purposes, and thought others might make use of it as well.  My application was display and analysis of low sampling rate data.  Run it as fast as you can, but I haven't even tested this at audio frequencies.
 
-![image](https://user-images.githubusercontent.com/105139648/174423989-e5be3121-467b-4e9e-828d-8a1541ec9d47.png)
+![image](https://user-images.githubusercontent.com/105139648/174671595-7c64bdda-1702-4b05-b373-1f5c32be99c5.png)
+
 
 ## Inputs
 
