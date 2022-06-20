@@ -3,10 +3,9 @@
 
 This subflow is its own tab in the *dashboard-ui* display. *dashboard-ui* is, of course, required.
 
-I put this tool together for my own purposes, and thought others might make use of it as well.  My application was display and analysis of low sampling rate data.  Run it as fast as you can, but I haven't even tested this at audio frequencies.
-
 ![image](https://user-images.githubusercontent.com/105139648/174671595-7c64bdda-1702-4b05-b373-1f5c32be99c5.png)
 
+I put this ad-hoc tool together for my own purposes, and thought others might make use of it as well.  My application was display and analysis of low sampling rate data.  Run it as fast as you can, but I haven't even tested this at audio frequencies.  Since this display is made to run with *live* updates, in case of calculation delays for large sample sizes, the subflow will automatically lower the sample sizes to lower the calculation delay below the sample rate.
 
 ## Inputs
 
